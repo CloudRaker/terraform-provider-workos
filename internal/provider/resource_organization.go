@@ -350,14 +350,33 @@ func (r *OrganizationResource) Update(ctx context.Context, req resource.UpdateRe
 		updateReq.ExternalID = plan.ExternalID.ValueString()
 	}
 
-	// Add metadata if specified
-	if !plan.Metadata.IsNull() && !plan.Metadata.IsUnknown() {
-		metadata := make(map[string]string)
-		resp.Diagnostics.Append(plan.Metadata.ElementsAs(ctx, &metadata, false)...)
-		if resp.Diagnostics.HasError() {
-			return
+	// WorkOS merges metadata on update — removed keys must be sent as null.
+	if !plan.Metadata.Equal(state.Metadata) && !plan.Metadata.IsUnknown() {
+		updateMap := make(map[string]*string)
+		if !plan.Metadata.IsNull() {
+			newMetadata := make(map[string]string)
+			resp.Diagnostics.Append(plan.Metadata.ElementsAs(ctx, &newMetadata, false)...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			for k, v := range newMetadata {
+				v := v
+				updateMap[k] = &v
+			}
 		}
-		updateReq.Metadata = metadata
+		if !state.Metadata.IsNull() && !state.Metadata.IsUnknown() {
+			oldMetadata := make(map[string]string)
+			resp.Diagnostics.Append(state.Metadata.ElementsAs(ctx, &oldMetadata, false)...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			for key := range oldMetadata {
+				if _, exists := updateMap[key]; !exists {
+					updateMap[key] = nil
+				}
+			}
+		}
+		updateReq.Metadata = updateMap
 	}
 
 	// Add domains if specified

@@ -43,10 +43,10 @@ type DomainData struct {
 
 // OrganizationUpdateRequest represents the request to update an organization
 type OrganizationUpdateRequest struct {
-	Name       string            `json:"name,omitempty"`
-	DomainData []DomainData      `json:"domain_data,omitempty"`
-	ExternalID string            `json:"external_id,omitempty"`
-	Metadata   map[string]string `json:"metadata,omitempty"`
+	Name       string             `json:"name,omitempty"`
+	DomainData []DomainData       `json:"domain_data,omitempty"`
+	ExternalID string             `json:"external_id,omitempty"`
+	Metadata   map[string]*string `json:"metadata,omitempty"`
 }
 
 // OrganizationListResponse represents the response from listing organizations
@@ -173,7 +173,7 @@ type UserUpdateRequest struct {
 	LastName      string            `json:"last_name,omitempty"`
 	EmailVerified *bool             `json:"email_verified,omitempty"`
 	ExternalID    string            `json:"external_id,omitempty"`
-	Metadata      map[string]string `json:"metadata,omitempty"`
+	Metadata      map[string]*string `json:"metadata,omitempty"`
 }
 
 // OrganizationMembershipRole represents the role assigned in a membership

@@ -471,12 +471,32 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		updateReq.ExternalID = plan.ExternalID.ValueString()
 	}
 	if !plan.Metadata.Equal(state.Metadata) && !plan.Metadata.IsUnknown() {
-		metadata := make(map[string]string)
-		resp.Diagnostics.Append(plan.Metadata.ElementsAs(ctx, &metadata, false)...)
-		if resp.Diagnostics.HasError() {
-			return
+		// WorkOS merges metadata on update — removed keys must be sent as null.
+		updateMap := make(map[string]*string)
+		if !plan.Metadata.IsNull() {
+			newMetadata := make(map[string]string)
+			resp.Diagnostics.Append(plan.Metadata.ElementsAs(ctx, &newMetadata, false)...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			for k, v := range newMetadata {
+				v := v
+				updateMap[k] = &v
+			}
 		}
-		updateReq.Metadata = metadata
+		if !state.Metadata.IsNull() && !state.Metadata.IsUnknown() {
+			oldMetadata := make(map[string]string)
+			resp.Diagnostics.Append(state.Metadata.ElementsAs(ctx, &oldMetadata, false)...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			for key := range oldMetadata {
+				if _, exists := updateMap[key]; !exists {
+					updateMap[key] = nil
+				}
+			}
+		}
+		updateReq.Metadata = updateMap
 	}
 
 	user, err := r.client.UpdateUser(ctx, state.ID.ValueString(), updateReq)
